@@ -1,0 +1,105 @@
+using UnityEngine;
+using System.Collections;
+
+public class SPECIFIC_BEHAVIOUR : Behaviour {
+    
+    //Specify all agent states here
+    protected new enum agent_states {};
+
+    [SerializeField] protected new agent_states initial_state;
+
+    //The initial state corresponds to this variable, which then becomes the current state of the agent
+    protected new agent_states current_state;
+
+    protected new SimulationTime timer;
+
+    protected new Agent definition;
+
+    protected new Environment env;
+
+    protected new Rigidbody2D rb;
+
+    void Start() {
+        env = this.gameObject.transform.parent.gameObject.GetComponent<Agent>().GetEnvironment();
+    }
+
+    void FixedUpdate() {
+        if (!env.IsPaused() && env.IsRunning()) {
+            NormalBehaviour();
+        }
+        else rb.velocity = Vector2.zero;
+        if (!env.IsRunning()) {
+            current_state = initial_state;
+            //if (!env.NeedsReset()) parameters.ResetStatistics();
+        }
+        if (env.NeedsReset()) {
+            //parameters.ExportStatistics();
+        }
+    }
+
+    void OnCollisionStay2D(Collision2D collision) {
+        if (!env.IsPaused() && env.IsRunning()) {
+            if (collision.collider.gameObject.tag == "Agent") {
+                OnAgentCollision();
+            }
+            else if (collision.collider.gameObject.tag == "Item") {
+                OnItemCollision();
+            }
+        }
+    }
+
+    void OnTriggerStay2D(Collider2D collision) {
+        if (!env.IsPaused() && env.IsRunning()) {
+            if (collision.gameObject.tag == "Agent") {
+                OnAgentVisionRange();
+            }
+            else if (collision.gameObject.tag == "Item") {
+                OnItemVisionRange();
+            }
+        }
+    }
+
+    //To be used when there is no collision with anything or nothing is on sight. The bulk of an agent's behaviour.
+    private void NormalBehaviour() {
+
+    }
+    
+    //To be used when the current agent unit has collisioned with an item.
+    private void OnItemCollision() {
+
+    }
+    
+    //To be used when the current agent unit has collisioned with another agent, whether it's the same type or another one.
+    private void OnAgentCollision() {
+
+    }
+    
+    //To be used when the agent unit has seen an item of interest inside its vision range.
+    private void OnItemVisionRange() {
+
+    } 
+
+    //To be used when the agent unit has seen another agent inside its vision range.
+    private void OnAgentVisionRange() {
+
+    } 
+
+    private bool IsDirectionValid(Vector2 destiny) {
+        agent_shape shape = definition.GetShape();
+        RaycastHit2D hit = new RaycastHit2D();
+        if (shape == agent_shape.circle) hit = Physics2D.Raycast((Vector2)transform.position + new Vector2(definition.GetRadius()/2,definition.GetRadius()/2),destiny,definition.GetRadius(),LayerMask.GetMask("Agents"));
+        else {
+            Vector2 size = definition.GetSize();
+            float max_size = Mathf.Max(size.x,size.y);
+            hit = Physics2D.Raycast(transform.position,destiny,max_size,LayerMask.GetMask("Agents"));
+        }
+        if (hit.collider != null && hit.collider.gameObject.activeSelf && hit.collider.gameObject != this.gameObject) return false;
+        else return true;
+    }
+
+    private Vector2 RandomDirection(float left, float right) {
+        float x = Random.Range(left,right);
+        float y = Random.Range(left,right);
+        return new Vector2(x,y);
+    }
+}

@@ -1,0 +1,148 @@
+using UnityEngine;
+using System.Collections.Generic;
+using MultipleEnums;
+
+public class SPECIFIC_BEHAVIOUR : ModelBehaviour {
+    
+    //Specify all agent states here
+    protected new enum agent_states {};
+
+    [SerializeField] protected new agent_states initial_state;
+
+    //The initial state corresponds to this variable, which then becomes the current state of the agent
+    protected new agent_states current_state;
+
+    //Specify all particular agent actions that it may perform, such as move, search, eat, breed, etc.
+    protected new enum agent_actions {};
+
+    [SerializeField] protected new int memory_size = 0;
+
+    //The memory where all actions performed by the agents should go, if needed
+    protected new Queue<agent_actions> action_memory;
+
+    //The list of objective actions the agent should have
+    protected new List<agent_actions> objective_memory;
+
+    //A copy of the previous list to return to the original state
+    protected new List<agent_actions> initial_objective_memory;
+
+    protected new SimulationTime timer;
+
+    protected new Agent definition;
+
+    protected new Environment env;
+
+    protected new Rigidbody2D rb;
+
+    protected bool reset_memory = false;
+
+    //A protected variable named parameters of the corresponding Parameter class should be declared here
+
+    void Start() {
+        action_memory = new Queue<agent_actions>(memory_size);
+        definition = this.gameObject.GetComponentInParent<Agent>();
+        env = definition.GetEnvironment();
+        rb = this.gameObject.GetComponent<Rigidbody2D>();
+        timer = GameObject.Find("Simulation Time").GetComponent<SimulationTime>();
+        current_state = initial_state;
+        objective_memory = new List<agent_actions>{};
+        initial_objective_memory = new List<agent_actions>();
+        initial_objective_memory.AddRange(objective_memory);
+    }
+
+    void FixedUpdate() {
+        if (!env.IsPaused() && env.IsRunning()) {
+            NormalBehaviour();
+            reset_memory = true;
+        }
+        else rb.velocity = Vector2.zero;
+        if (!env.IsRunning()) {
+            current_state = initial_state;
+            if (reset_memory) {
+                reset_memory = false;
+                objective_memory.AddRange(initial_objective_memory);
+            }
+            //if (!env.NeedsReset()) parameters.ResetStatistics();
+        }
+        if (env.NeedsReset()) {
+            //parameters.ExportStatistics();
+        }
+    }
+
+    void OnCollisionStay2D(Collision2D collision) {
+        if (!env.IsPaused() && env.IsRunning()) {
+            if (collision.collider.gameObject.tag == "Agent") {
+                OnAgentCollision(collision);
+            }
+            else if (collision.collider.gameObject.tag == "Item") {
+                OnItemCollision(collision);
+            }
+        }
+    }
+
+    void OnTriggerStay2D(Collider2D collision) {
+        if (!env.IsPaused() && env.IsRunning()) {
+            if (collision.gameObject.tag == "Agent") {
+                OnAgentVisionRange(collision);
+            }
+            else if (collision.gameObject.tag == "Item") {
+                OnItemVisionRange(collision);
+            }
+        }
+    }
+
+    //To be used when there is no collision with anything or nothing is on sight. The bulk of an agent's behaviour.
+    private void NormalBehaviour() {
+        //parameters.CheckStatistics(timer.GetCurrentTime());
+    }
+    
+    //To be used when the current agent unit has collisioned with an item.
+    private void OnItemCollision(Collision2D collision) {
+
+    }
+    
+    //To be used when the current agent unit has collisioned with another agent, whether it's the same type or another one.
+    private void OnAgentCollision(Collision2D collision) {
+
+    }
+    
+    //To be used when the agent unit has seen an item of interest inside its vision range.
+    private void OnItemVisionRange(Collider2D collision) {
+
+    } 
+
+    //To be used when the agent unit has seen another agent inside its vision range.
+    private void OnAgentVisionRange(Collider2D collision) {
+
+    } 
+
+    private bool IsDirectionValid(Vector2 destiny) {
+        agent_shape shape = definition.GetShape();
+        RaycastHit2D hit = new RaycastHit2D();
+        if (shape == agent_shape.circle) hit = Physics2D.Raycast((Vector2)transform.position + new Vector2(definition.GetRadius()/2,definition.GetRadius()/2),destiny,definition.GetRadius(),LayerMask.GetMask("Agents"));
+        else {
+            Vector2 size = definition.GetSize();
+            float max_size = Mathf.Max(size.x,size.y);
+            hit = Physics2D.Raycast(transform.position,destiny,max_size,LayerMask.GetMask("Agents"));
+        }
+        if (hit.collider != null && hit.collider.gameObject.activeSelf && hit.collider.gameObject != this.gameObject) return false;
+        else return true;
+    }
+
+    private Vector2 RandomDirection(float left, float right) {
+        float x = Random.Range(left,right);
+        float y = Random.Range(left,right);
+        return new Vector2(x,y);
+    }
+
+    private void Memorize(agent_actions action) {
+        action_memory.Dequeue();
+        action_memory.Enqueue(action);
+    }
+
+    private bool FindInMemory(agent_actions action) {
+        bool found = false;
+        found = action_memory.Contains(action);
+        return found;
+    }
+}
